@@ -1,0 +1,46 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  main:
+    allow-bean-definition-overriding: true
+
+# Disable scheduler in tests
+scheduler:
+  reassessment:
+    enabled: false
+
+# Test configuration
+upi:
+  platform:
+    base-url: http://localhost:8081
+    api-key: test-api-key
+    timeout-seconds: 5
+    retry-attempts: 1
+
+credit:
+  assessment:
+    min-monthly-volume: 25000
+    min-transaction-count: 20
+    max-bounce-rate: 20
+    min-tenure-months: 3
+
+storage:
+  reports:
+    path: /tmp/test-credit-reports
+    url-prefix: http://localhost:8080/api/v1/reports
+
+logging:
+  level:
+    com.sentient.credit: DEBUG

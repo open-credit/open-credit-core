@@ -1,0 +1,184 @@
+spring:
+  application:
+    name: credit-assessment-engine
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/credit_assessment_db
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+
+# Server Configuration
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+# Logging
+logging:
+  level:
+    com.sentient.credit: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+# UPI Platform Integration
+upi:
+  platform:
+    base-url: ${UPI_PLATFORM_URL:http://localhost:8081}
+    api-key: ${UPI_PLATFORM_API_KEY:your-api-key}
+    timeout-seconds: 30
+    retry-attempts: 3
+    # Enable mock data generation when actual platform is unavailable
+    use-mock: ${UPI_USE_MOCK:true}
+    fallback-to-mock: ${UPI_FALLBACK_TO_MOCK:true}
+
+# Credit Assessment Configuration
+credit:
+  assessment:
+    # Minimum thresholds
+    min-monthly-volume: 25000
+    min-transaction-count: 20
+    max-bounce-rate: 20
+    min-tenure-months: 3
+    
+    # Scoring weights (must sum to 1.0)
+    weights:
+      volume: 0.30
+      consistency: 0.25
+      growth: 0.15
+      bounce-rate: 0.15
+      concentration: 0.15
+    
+    # Volume scoring thresholds (INR)
+    volume-thresholds:
+      excellent: 500000
+      good: 200000
+      moderate: 100000
+      low: 50000
+    
+    # Risk categories
+    risk:
+      low-threshold: 80
+      medium-threshold: 60
+    
+    # Loan eligibility multipliers
+    eligibility:
+      low-risk-multiplier: 0.30
+      medium-risk-multiplier: 0.25
+      high-risk-multiplier: 0.15
+      min-loan-amount: 10000
+      max-loan-amount: 5000000
+    
+    # Tenure limits (days)
+    tenure:
+      low-risk-consistent: 365
+      low-risk: 180
+      medium-risk: 90
+      high-risk: 30
+    
+    # Interest rates (annual %)
+    interest-rates:
+      low-risk: 18
+      medium-risk: 24
+      high-risk: 30
+
+# File Storage
+storage:
+  reports:
+    path: ${REPORTS_PATH:/tmp/credit-reports}
+    url-prefix: ${REPORTS_URL_PREFIX:http://localhost:8080/api/v1/reports}
+
+# Scheduler Configuration
+scheduler:
+  reassessment:
+    enabled: true
+    cron: "0 0 2 1 * ?" # 2 AM on 1st of every month
+
+# ==========================================
+# LLM / FinGPT Configuration
+# ==========================================
+# ==========================================
+# Rules Engine Configuration
+# ==========================================
+rules:
+  # Path to scoring rules YAML (in classpath)
+  path: rules/scoring-rules.yaml
+  eligibility-path: rules/eligibility-rules.yaml
+  
+  # Enable hot-reloading of rules (development only)
+  hot-reload: ${RULES_HOT_RELOAD:false}
+  
+  # Log rule evaluations for audit
+  audit-logging: true
+
+llm:
+  # Enable/disable all LLM features
+  enabled: ${LLM_ENABLED:true}
+  
+  # Provider: FINGPT, OPENAI, OLLAMA, AZURE_OPENAI
+  provider: ${LLM_PROVIDER:OPENAI}
+  
+  # API Configuration
+  api:
+    # OpenAI
+    base-url: ${LLM_BASE_URL:https://api.openai.com/v1}
+    api-key: ${LLM_API_KEY:}
+    timeout-seconds: 60
+    max-retries: 3
+    organization-id: ${OPENAI_ORG_ID:}
+    
+    # For FinGPT (HuggingFace)
+    # base-url: https://api-inference.huggingface.co/models/FinGPT/fingpt-forecaster
+    
+    # For Ollama (local)
+    # base-url: http://localhost:11434
+    
+    # For Azure OpenAI
+    # base-url: https://{resource}.openai.azure.com
+  
+  # Model Configuration
+  model:
+    openai-model: ${OPENAI_MODEL:gpt-4o}
+    fingpt-model: fingpt-forecaster
+    ollama-model: ${OLLAMA_MODEL:llama3:8b}
+    azure-deployment: ${AZURE_DEPLOYMENT:gpt-4}
+    temperature: 0.7
+    max-tokens: 2048
+    top-p: 0.9
+  
+  # Feature Toggles
+  features:
+    credit-insights: true
+    risk-narrative: true
+    recommendations: true
+    chat-interface: true
+    anomaly-explanation: true
+    report-enhancement: true
+    comparative-analysis: true

@@ -1,0 +1,35 @@
+# Test Configuration
+spring.application.name=credit-assessment-engine-test
+server.port=8081
+
+# H2 In-Memory Database for Testing
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+
+# JPA Configuration for H2
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+#spring.h2.console.enabled=true
+
+# Mock UPI Platform (will be mocked in tests)
+upi.platform.base-url=http://localhost:8081
+upi.platform.api-key=test-api-key
+
+# PDF Reports (temp directory for tests)
+pdf.reports.directory=./target/test-reports
+pdf.reports.base-url=http://localhost:8080/reports
+
+# Logging for Tests
+logging.level.root=INFO
+logging.level.com.sentient.fintech.credit=DEBUG
+logging.level.org.springframework.test=DEBUG
+
+# Disable scheduling in tests
+spring.task.scheduling.enabled=false
+
+# Jackson Configuration
+spring.jackson.serialization.write-dates-as-timestamps=false
+spring.jackson.time-zone=Asia/Kolkata

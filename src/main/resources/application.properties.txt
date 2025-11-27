@@ -1,0 +1,58 @@
+# Application Configuration
+spring.application.name=credit-assessment-engine
+server.port=8080
+
+# Database Configuration (PostgreSQL)
+spring.datasource.url=jdbc:postgresql://localhost:5432/credit_assessment_db
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA/Hibernate Configuration
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.jdbc.batch_size=20
+spring.jpa.properties.hibernate.order_inserts=true
+spring.jpa.properties.hibernate.order_updates=true
+
+# Connection Pool Configuration
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=5
+spring.datasource.hikari.connection-timeout=20000
+spring.datasource.hikari.idle-timeout=300000
+spring.datasource.hikari.max-lifetime=1200000
+
+# UPI Platform Integration
+upi.platform.base-url=http://localhost:8081
+upi.platform.api-key=your-upi-platform-api-key-here
+
+# PDF Report Configuration
+pdf.reports.directory=./reports
+pdf.reports.base-url=http://localhost:8080/reports
+
+# Logging Configuration
+logging.level.root=INFO
+logging.level.com.sentient.fintech.credit=DEBUG
+logging.level.org.springframework.web=INFO
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+
+# Actuator Configuration
+management.endpoints.web.exposure.include=health,info,metrics
+management.endpoint.health.show-details=always
+
+# API Documentation (Swagger/OpenAPI)
+springdoc.api-docs.path=/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+springdoc.swagger-ui.enabled=true
+
+# Jackson Configuration
+spring.jackson.serialization.write-dates-as-timestamps=false
+spring.jackson.time-zone=Asia/Kolkata
+spring.jackson.default-property-inclusion=non_null
+
+# Error Handling
+server.error.include-message=always
+server.error.include-stacktrace=on_param

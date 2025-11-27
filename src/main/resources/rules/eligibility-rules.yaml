@@ -1,0 +1,333 @@
+# ============================================================================
+# OPENCREDIT ELIGIBILITY RULES v1.0.0
+# ============================================================================
+#
+# These rules determine MINIMUM requirements for loan eligibility.
+# A merchant must pass ALL rules to be eligible for any loan.
+#
+# DESIGN PHILOSOPHY:
+# - Set thresholds LOW to maximize inclusion
+# - Protect vulnerable borrowers from unsuitable loans
+# - Provide clear guidance on how to become eligible
+#
+# ============================================================================
+
+version: "1.0.0"
+last_updated: "2024-11-01"
+
+metadata:
+  name: "OpenCredit Eligibility Rules"
+  description: |
+    Minimum eligibility criteria for merchant loans. These rules balance
+    financial inclusion with responsible lending. We aim to include as many
+    merchants as possible while ensuring basic viability.
+
+# ============================================================================
+# ELIGIBILITY RULES
+# ============================================================================
+rules:
+
+  # ---------------------------------------------------------------------------
+  # RULE: Minimum Monthly Volume
+  # ---------------------------------------------------------------------------
+  - id: "ELIG_MIN_VOLUME"
+    name: "Minimum Monthly Transaction Volume"
+    version: "1.0"
+    enabled: true
+    
+    description: |
+      Ensures the merchant has sufficient business activity to support
+      loan repayment. The threshold of ₹25,000 is set intentionally low
+      to include micro-merchants like street vendors and small kirana stores.
+    
+    rationale: |
+      Research shows that merchants with less than ₹25,000 monthly volume
+      have significantly higher default rates (>40%) due to insufficient
+      cash flow for EMI payments. This threshold protects both lenders
+      and borrowers from unsuitable loans.
+    
+    condition:
+      field: "average_monthly_volume"
+      operator: "GREATER_THAN_OR_EQUAL"
+      value: 25000
+      unit: "INR"
+    
+    on_failure:
+      eligible: false
+      reason_code: "VOLUME_TOO_LOW"
+      message: "Monthly transaction volume is below the minimum requirement of ₹25,000"
+      
+      recommendations:
+        - text: "Increase digital payment acceptance"
+          priority: 1
+        - text: "Encourage customers to pay via UPI"
+          priority: 2
+        - text: "Reapply after building 3 months of higher volume"
+          priority: 3
+    
+    exceptions:
+      - type: "NEW_BUSINESS"
+        condition: "business_age < 6 months AND growth_rate > 50%"
+        action: "REDUCE_THRESHOLD_TO_15000"
+        description: "New but rapidly growing businesses get lower threshold"
+
+  # ---------------------------------------------------------------------------
+  # RULE: Minimum Transaction Count
+  # ---------------------------------------------------------------------------
+  - id: "ELIG_MIN_TRANSACTIONS"
+    name: "Minimum Transaction Count"
+    version: "1.0"
+    enabled: true
+    
+    description: |
+      Requires sufficient transaction data for reliable credit assessment.
+      With fewer than 20 transactions, statistical analysis is unreliable.
+    
+    rationale: |
+      Credit scoring algorithms require minimum data points for accuracy.
+      20 transactions over 3 months (roughly 7/month) is achievable for
+      even very small merchants while providing meaningful data.
+    
+    condition:
+      field: "total_transaction_count"
+      operator: "GREATER_THAN_OR_EQUAL"
+      value: 20
+    
+    on_failure:
+      eligible: false
+      reason_code: "INSUFFICIENT_TRANSACTIONS"
+      message: "Transaction history is insufficient (minimum 20 transactions required)"
+      
+      recommendations:
+        - text: "Accept more digital payments to build history"
+          priority: 1
+        - text: "Even small transactions help build your profile"
+          priority: 2
+
+  # ---------------------------------------------------------------------------
+  # RULE: Maximum Bounce Rate
+  # ---------------------------------------------------------------------------
+  - id: "ELIG_MAX_BOUNCE"
+    name: "Maximum Transaction Failure Rate"
+    version: "1.0"
+    enabled: true
+    
+    description: |
+      Limits eligibility for merchants with very high transaction failure rates.
+      High bounce rates indicate payment processing issues or financial stress.
+    
+    rationale: |
+      Bounce rates above 20% often indicate systemic issues:
+      - Customer payment failures
+      - Bank account problems
+      - Potential fraud patterns
+      The 20% threshold is generous; industry average is ~5%.
+    
+    condition:
+      field: "bounce_rate"
+      operator: "LESS_THAN_OR_EQUAL"
+      value: 20
+      unit: "percent"
+    
+    on_failure:
+      eligible: false
+      reason_code: "BOUNCE_RATE_TOO_HIGH"
+      message: "Transaction failure rate exceeds 20% maximum"
+      
+      recommendations:
+        - text: "Investigate causes of failed transactions"
+          priority: 1
+        - text: "Ensure customers have sufficient funds before payment"
+          priority: 2
+        - text: "Check for technical issues with payment setup"
+          priority: 3
+
+  # ---------------------------------------------------------------------------
+  # RULE: Minimum Business Tenure
+  # ---------------------------------------------------------------------------
+  - id: "ELIG_MIN_TENURE"
+    name: "Minimum Business Operating History"
+    version: "1.0"
+    enabled: true
+    
+    description: |
+      Requires minimum 3 months of transaction history for assessment.
+      This provides enough data to identify patterns and trends.
+    
+    rationale: |
+      3 months allows us to:
+      - Identify monthly patterns
+      - Calculate meaningful growth rates
+      - Assess business stability
+      Shorter periods don't provide reliable signals.
+    
+    condition:
+      field: "business_tenure_months"
+      operator: "GREATER_THAN_OR_EQUAL"
+      value: 3
+    
+    on_failure:
+      eligible: false
+      reason_code: "TENURE_TOO_SHORT"
+      message: "Business history is too short (minimum 3 months required)"
+      
+      recommendations:
+        - text: "Continue operating and building transaction history"
+          priority: 1
+        - text: "Reapply after completing 3 months of digital transactions"
+          priority: 2
+    
+    # Future consideration: Reduce for businesses with strong references
+    future_enhancement: |
+      Consider reducing tenure requirement for merchants with:
+      - Strong growth trajectory (>100% monthly growth)
+      - Verified business registration
+      - Existing relationship with lending partner
+
+  # ---------------------------------------------------------------------------
+  # RULE: No Fraud Indicators
+  # ---------------------------------------------------------------------------
+  - id: "ELIG_NO_FRAUD"
+    name: "No Fraud Indicators Present"
+    version: "1.0"
+    enabled: true
+    
+    description: |
+      Blocks eligibility for merchants with detected fraud patterns.
+      This protects the lending ecosystem and honest merchants.
+    
+    rationale: |
+      Fraud indicators include:
+      - Circular transactions (self-dealing)
+      - Sudden unexplained volume spikes
+      - Single-customer dominance (>80%)
+      These patterns suggest manipulation to inflate credit scores.
+    
+    condition:
+      field: "fraud_indicator_count"
+      operator: "EQUAL"
+      value: 0
+    
+    on_failure:
+      eligible: false
+      reason_code: "FRAUD_DETECTED"
+      message: "Suspicious transaction patterns detected"
+      
+      recommendations:
+        - text: "Contact support if you believe this is an error"
+          priority: 1
+        - text: "Provide documentation for unusual transaction patterns"
+          priority: 2
+      
+      # Fraud cases require human review
+      requires_manual_review: true
+      escalation_team: "fraud_review"
+
+  # ---------------------------------------------------------------------------
+  # RULE: Minimum Unique Customers (Soft Rule)
+  # ---------------------------------------------------------------------------
+  - id: "ELIG_MIN_CUSTOMERS"
+    name: "Minimum Customer Diversity"
+    version: "1.0"
+    enabled: true
+    
+    description: |
+      Requires minimum number of unique customers to ensure legitimate
+      business activity. Very few customers may indicate artificial transactions.
+    
+    rationale: |
+      Legitimate retail businesses typically have 5+ unique customers.
+      B2B businesses may have fewer but larger customers.
+      This is a soft rule with manual review option.
+    
+    condition:
+      field: "unique_customer_count"
+      operator: "GREATER_THAN_OR_EQUAL"
+      value: 5
+    
+    on_failure:
+      eligible: false
+      reason_code: "LOW_CUSTOMER_DIVERSITY"
+      message: "Number of unique customers is below minimum (5 required)"
+      
+      recommendations:
+        - text: "Expand customer base through marketing"
+          priority: 1
+        - text: "Encourage existing customers to refer others"
+          priority: 2
+      
+      # Allow override for B2B businesses
+      exception_allowed: true
+      exception_criteria: "verified_b2b_business"
+
+# ============================================================================
+# RULE COMBINATIONS
+# ============================================================================
+# Some eligibility decisions depend on combinations of factors
+
+combinations:
+
+  # New businesses with strong growth get relaxed rules
+  - id: "COMBO_NEW_GROWTH"
+    name: "New Business with Strong Growth"
+    description: "Relaxed criteria for new but rapidly growing businesses"
+    
+    conditions:
+      - field: "business_tenure_months"
+        operator: "LESS_THAN"
+        value: 6
+      - field: "growth_rate"
+        operator: "GREATER_THAN"
+        value: 50
+    
+    adjustments:
+      - rule: "ELIG_MIN_VOLUME"
+        new_threshold: 15000
+        reason: "Strong growth compensates for lower absolute volume"
+
+  # Seasonal businesses during off-season
+  - id: "COMBO_SEASONAL_OFF"
+    name: "Seasonal Business in Off-Season"
+    description: "Adjusted criteria for seasonal businesses in their slow period"
+    
+    conditions:
+      - field: "is_seasonal_business"
+        operator: "EQUAL"
+        value: true
+      - field: "is_peak_season"
+        operator: "EQUAL"
+        value: false
+    
+    adjustments:
+      - rule: "ELIG_MIN_VOLUME"
+        multiplier: 0.5
+        reason: "Seasonal businesses have naturally lower off-season volume"
+
+# ============================================================================
+# MANUAL REVIEW TRIGGERS
+# ============================================================================
+manual_review_triggers:
+  
+  - id: "REVIEW_BORDERLINE"
+    name: "Borderline Cases"
+    description: "Cases just below eligibility thresholds"
+    condition: "any_metric_within_10_percent_of_threshold"
+    action: "REQUEST_MANUAL_REVIEW"
+  
+  - id: "REVIEW_FIRST_LOAN"
+    name: "First-Time Borrower"
+    description: "Extra review for merchants with no loan history"
+    condition: "previous_loans == 0 AND loan_amount > 100000"
+    action: "REQUEST_SENIOR_REVIEW"
+
+# ============================================================================
+# CHANGELOG
+# ============================================================================
+changelog:
+  - version: "1.0.0"
+    date: "2024-11-01"
+    changes:
+      - "Initial eligibility rules release"
+      - "5 core eligibility criteria"
+      - "Exception handling for edge cases"
+      - "Manual review triggers for borderline cases"

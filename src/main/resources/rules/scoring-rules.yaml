@@ -1,0 +1,647 @@
+# ============================================================================
+# OPENCREDIT SCORING RULES v1.0.0
+# ============================================================================
+# 
+# This file defines the credit scoring rules for small business and merchant
+# lending. These rules are designed to be:
+#
+#   ✓ TRANSPARENT - Anyone can read and understand how scores are calculated
+#   ✓ FAIR - No discriminatory factors; based purely on financial behavior
+#   ✓ INCLUSIVE - Designed for underserved merchants without traditional credit
+#   ✓ AUDITABLE - Every rule change is versioned and documented
+#   ✓ COMMUNITY-DRIVEN - Open for contributions and improvements
+#
+# HOW TO CONTRIBUTE:
+# 1. Fork the repository
+# 2. Propose changes with justification
+# 3. Submit a pull request with evidence/research
+# 4. Community reviews and discusses
+# 5. Changes are merged after consensus
+#
+# PRINCIPLES:
+# - We believe in financial inclusion for all
+# - Credit decisions should be explainable
+# - Alternative data can unlock credit for the underserved
+# - Rules should be based on evidence, not bias
+#
+# ============================================================================
+
+version: "1.0.0"
+last_updated: "2024-11-01"
+maintainers:
+  - name: "OpenCredit Community"
+    email: "rules@opencredit.org"
+
+# ============================================================================
+# METADATA & DOCUMENTATION
+# ============================================================================
+metadata:
+  name: "OpenCredit Merchant Scoring Rules"
+  description: |
+    Fair, transparent credit scoring rules for small merchants and businesses
+    using UPI/digital payment transaction data. Designed for financial inclusion
+    in emerging markets.
+  
+  target_users:
+    - Small merchants (kirana stores, street vendors)
+    - Solo entrepreneurs
+    - Micro and small businesses
+    - First-time borrowers without credit history
+  
+  data_sources:
+    - UPI transaction history
+    - Digital payment records
+    - Business transaction patterns
+  
+  # What we DO NOT use (to ensure fairness)
+  excluded_factors:
+    - gender
+    - religion
+    - caste
+    - location_based_discrimination
+    - personal_social_media
+    - family_background
+    - education_level
+
+# ============================================================================
+# SCORING COMPONENTS
+# ============================================================================
+# 
+# The credit score (0-100) is calculated as a weighted sum of component scores.
+# Each component measures a specific aspect of business health.
+#
+# Formula: Final Score = Σ (Component Score × Weight)
+#
+scoring:
+  # Total must equal 1.0 (100%)
+  components:
+    
+    # -------------------------------------------------------------------------
+    # VOLUME SCORE (30% weight)
+    # -------------------------------------------------------------------------
+    # WHY: Transaction volume indicates business activity and revenue capacity.
+    #      Higher volume suggests better ability to repay loans.
+    # 
+    # FAIRNESS NOTE: We use relative thresholds appropriate for small merchants.
+    #                A kirana store doing ₹50K/month is healthy for its segment.
+    # -------------------------------------------------------------------------
+    volume:
+      weight: 0.30
+      description: "Measures business transaction volume and revenue capacity"
+      metric: "average_monthly_volume"
+      unit: "INR"
+      
+      # Score mapping: volume range → score
+      # Designed with input from microfinance experts
+      tiers:
+        - min: 500000    # ₹5 lakh+
+          max: null
+          score: 100
+          label: "Excellent"
+          description: "Strong business with high transaction volume"
+        
+        - min: 200000    # ₹2-5 lakh
+          max: 500000
+          score: 80
+          label: "Good"
+          description: "Healthy medium-sized business"
+        
+        - min: 100000    # ₹1-2 lakh
+          max: 200000
+          score: 60
+          label: "Average"
+          description: "Small but stable business"
+        
+        - min: 50000     # ₹50K-1 lakh
+          max: 100000
+          score: 40
+          label: "Below Average"
+          description: "Micro business, needs growth"
+        
+        - min: 25000     # ₹25-50K
+          max: 50000
+          score: 25
+          label: "Low"
+          description: "Very small business, limited capacity"
+        
+        - min: 0         # Below ₹25K
+          max: 25000
+          score: 10
+          label: "Minimal"
+          description: "Insufficient volume for assessment"
+    
+    # -------------------------------------------------------------------------
+    # CONSISTENCY SCORE (25% weight)
+    # -------------------------------------------------------------------------
+    # WHY: Consistent revenue indicates stable business operations.
+    #      Lenders prefer predictable cash flows for repayment.
+    #
+    # HOW: Measured using Coefficient of Variation (CV) of monthly volumes.
+    #      Score = 100 - (CV × 100), minimum 0
+    #
+    # FAIRNESS NOTE: We account for seasonal businesses separately.
+    #                A festival goods seller naturally has variable income.
+    # -------------------------------------------------------------------------
+    consistency:
+      weight: 0.25
+      description: "Measures stability and predictability of business income"
+      metric: "coefficient_of_variation"
+      
+      # Lower CV = Higher consistency = Higher score
+      calculation: "100 - (coefficient_of_variation * 100)"
+      minimum_score: 0
+      maximum_score: 100
+      
+      interpretation:
+        - cv_range: "0.00 - 0.20"
+          score_range: "80-100"
+          meaning: "Very stable business with predictable income"
+        
+        - cv_range: "0.20 - 0.40"
+          score_range: "60-80"
+          meaning: "Reasonably stable with minor fluctuations"
+        
+        - cv_range: "0.40 - 0.60"
+          score_range: "40-60"
+          meaning: "Moderate variability, may be seasonal"
+        
+        - cv_range: "0.60+"
+          score_range: "0-40"
+          meaning: "High variability, unpredictable income"
+      
+      # Seasonal business adjustment
+      seasonal_adjustment:
+        enabled: true
+        threshold_cv: 0.50  # CV above this triggers seasonal check
+        bonus_if_seasonal: 10  # Add points if confirmed seasonal pattern
+        description: |
+          Businesses with legitimate seasonal patterns (festivals, agriculture)
+          should not be penalized. We detect seasonality and adjust accordingly.
+    
+    # -------------------------------------------------------------------------
+    # GROWTH SCORE (15% weight)
+    # -------------------------------------------------------------------------
+    # WHY: Growing businesses have better future repayment capacity.
+    #      Declining businesses pose higher default risk.
+    #
+    # HOW: Compare recent 3-month average to previous 3-month average.
+    #      Growth Rate = (Recent - Previous) / Previous × 100
+    #
+    # FAIRNESS NOTE: We don't over-penalize decline; businesses have cycles.
+    #                A 10% decline is concerning but not disqualifying.
+    # -------------------------------------------------------------------------
+    growth:
+      weight: 0.15
+      description: "Measures business growth trajectory"
+      metric: "growth_rate_percentage"
+      
+      tiers:
+        - min: 30        # 30%+ growth
+          max: null
+          score: 100
+          label: "Rapid Growth"
+          description: "Business is expanding quickly"
+        
+        - min: 15        # 15-30% growth
+          max: 30
+          score: 85
+          label: "Strong Growth"
+          description: "Healthy business expansion"
+        
+        - min: 0         # 0-15% growth
+          max: 15
+          score: 70
+          label: "Moderate Growth"
+          description: "Stable with positive trajectory"
+        
+        - min: -10       # 0 to -10% (slight decline)
+          max: 0
+          score: 50
+          label: "Flat"
+          description: "No growth, but not declining significantly"
+        
+        - min: -25       # -10% to -25%
+          max: -10
+          score: 30
+          label: "Declining"
+          description: "Business is contracting"
+        
+        - min: null      # Below -25%
+          max: -25
+          score: 15
+          label: "Rapid Decline"
+          description: "Significant business contraction"
+    
+    # -------------------------------------------------------------------------
+    # BOUNCE RATE SCORE (15% weight)
+    # -------------------------------------------------------------------------
+    # WHY: Failed transactions indicate payment issues or customer problems.
+    #      High bounce rates may signal operational or financial stress.
+    #
+    # HOW: Bounce Rate = Failed Transactions / Total Transactions × 100
+    #
+    # FAIRNESS NOTE: Some bounces are normal (network issues, etc.)
+    #                We only penalize rates significantly above industry average.
+    # -------------------------------------------------------------------------
+    bounce_rate:
+      weight: 0.15
+      description: "Measures transaction success rate"
+      metric: "bounce_rate_percentage"
+      
+      # Lower bounce rate = Higher score
+      tiers:
+        - min: 0         # 0-3% bounce
+          max: 3
+          score: 100
+          label: "Excellent"
+          description: "Very low failure rate"
+        
+        - min: 3         # 3-5% bounce
+          max: 5
+          score: 85
+          label: "Good"
+          description: "Normal failure rate"
+        
+        - min: 5         # 5-10% bounce
+          max: 10
+          score: 70
+          label: "Average"
+          description: "Acceptable but room for improvement"
+        
+        - min: 10        # 10-15% bounce
+          max: 15
+          score: 50
+          label: "Concerning"
+          description: "Higher than normal failures"
+        
+        - min: 15        # 15-20% bounce
+          max: 20
+          score: 30
+          label: "High"
+          description: "Significant payment issues"
+        
+        - min: 20        # 20%+ bounce
+          max: null
+          score: 10
+          label: "Critical"
+          description: "Very high failure rate - risk indicator"
+    
+    # -------------------------------------------------------------------------
+    # CUSTOMER CONCENTRATION SCORE (15% weight)
+    # -------------------------------------------------------------------------
+    # WHY: Over-dependence on few customers is risky.
+    #      If top customers leave, business may collapse.
+    #
+    # HOW: Concentration = Top 10 Customers Volume / Total Volume × 100
+    #
+    # FAIRNESS NOTE: Some B2B businesses naturally have few large customers.
+    #                We apply context-aware scoring for different business types.
+    # -------------------------------------------------------------------------
+    concentration:
+      weight: 0.15
+      description: "Measures customer diversity and dependency risk"
+      metric: "top_10_customer_concentration_percentage"
+      
+      # Lower concentration = Higher score
+      tiers:
+        - min: 0         # 0-20% concentration
+          max: 20
+          score: 100
+          label: "Excellent"
+          description: "Highly diversified customer base"
+        
+        - min: 20        # 20-30% concentration
+          max: 30
+          score: 85
+          label: "Good"
+          description: "Well-diversified"
+        
+        - min: 30        # 30-50% concentration
+          max: 50
+          score: 65
+          label: "Moderate"
+          description: "Some concentration risk"
+        
+        - min: 50        # 50-70% concentration
+          max: 70
+          score: 45
+          label: "High"
+          description: "Significant customer dependency"
+        
+        - min: 70        # 70%+ concentration
+          max: null
+          score: 25
+          label: "Very High"
+          description: "Dangerous dependency on few customers"
+
+# ============================================================================
+# RISK CLASSIFICATION
+# ============================================================================
+#
+# Based on the final credit score, merchants are classified into risk categories.
+# Each category has different loan terms to balance risk appropriately.
+#
+risk_categories:
+  
+  low_risk:
+    score_range:
+      min: 80
+      max: 100
+    label: "Low Risk"
+    description: |
+      Excellent credit profile. Strong business fundamentals with consistent
+      performance. Qualifies for best loan terms.
+    color: "#4CAF50"  # Green
+    
+  medium_risk:
+    score_range:
+      min: 60
+      max: 79
+    label: "Medium Risk"
+    description: |
+      Good credit profile with some areas for improvement. Solid business
+      with manageable risk factors.
+    color: "#FF9800"  # Orange
+    
+  high_risk:
+    score_range:
+      min: 0
+      max: 59
+    label: "High Risk"
+    description: |
+      Credit profile needs improvement. May have inconsistent business
+      or concerning risk indicators. Limited loan options.
+    color: "#F44336"  # Red
+
+# ============================================================================
+# ELIGIBILITY RULES
+# ============================================================================
+#
+# These rules determine if a merchant qualifies for ANY loan.
+# All conditions must be met. These are minimum thresholds for safety.
+#
+# PHILOSOPHY: We want to be inclusive, but we must protect both lenders
+#             and borrowers from unsuitable loans.
+#
+eligibility:
+  description: |
+    Minimum requirements for loan eligibility. Designed to be inclusive
+    while ensuring basic business viability. All conditions must be met.
+  
+  rules:
+    # Rule 1: Minimum business activity
+    - id: "ELIG_001"
+      name: "Minimum Monthly Volume"
+      description: |
+        Ensures minimum business activity to support loan repayment.
+        Set low to include micro-merchants.
+      condition:
+        metric: "average_monthly_volume"
+        operator: ">="
+        value: 25000
+        unit: "INR"
+      failure_message: "Monthly transaction volume below ₹25,000 minimum"
+      recommendation: "Continue building transaction history through digital payments"
+    
+    # Rule 2: Minimum transaction count
+    - id: "ELIG_002"
+      name: "Minimum Transactions"
+      description: |
+        Ensures sufficient transaction data for reliable assessment.
+        Low threshold to include small merchants.
+      condition:
+        metric: "total_transaction_count"
+        operator: ">="
+        value: 20
+      failure_message: "Insufficient transaction history (minimum 20 required)"
+      recommendation: "Increase digital payment adoption to build history"
+    
+    # Rule 3: Maximum bounce rate
+    - id: "ELIG_003"
+      name: "Maximum Bounce Rate"
+      description: |
+        Protects against businesses with severe payment issues.
+        Threshold is generous to avoid excluding viable merchants.
+      condition:
+        metric: "bounce_rate"
+        operator: "<="
+        value: 20
+        unit: "percent"
+      failure_message: "Transaction failure rate too high (above 20%)"
+      recommendation: "Resolve payment issues and improve transaction success rate"
+    
+    # Rule 4: Minimum business tenure
+    - id: "ELIG_004"
+      name: "Minimum Business Tenure"
+      description: |
+        Requires minimum operating history for risk assessment.
+        3 months is short enough to include newer businesses.
+      condition:
+        metric: "business_tenure_months"
+        operator: ">="
+        value: 3
+      failure_message: "Business history too short (minimum 3 months required)"
+      recommendation: "Continue operations and reapply after building history"
+    
+    # Rule 5: No fraud indicators
+    - id: "ELIG_005"
+      name: "No Fraud Indicators"
+      description: |
+        Screens for potential fraudulent patterns.
+        Protects the ecosystem from bad actors.
+      condition:
+        metric: "fraud_indicators"
+        operator: "=="
+        value: 0
+      failure_message: "Suspicious transaction patterns detected"
+      recommendation: "Contact support if you believe this is an error"
+
+# ============================================================================
+# FRAUD DETECTION RULES
+# ============================================================================
+#
+# These rules identify potentially fraudulent or manipulated transaction patterns.
+# Flagged merchants require manual review before loan approval.
+#
+fraud_detection:
+  description: |
+    Rules to detect potentially fraudulent transaction patterns.
+    These protect both lenders and honest borrowers from ecosystem abuse.
+  
+  rules:
+    # Sudden volume spike may indicate fake transactions
+    - id: "FRAUD_001"
+      name: "Sudden Volume Spike"
+      description: "Detects abnormal volume increases that may indicate manipulation"
+      condition:
+        metric: "volume_spike_percentage"
+        operator: ">"
+        value: 200  # More than 3x normal volume
+      severity: "HIGH"
+      action: "MANUAL_REVIEW"
+      explanation: |
+        A sudden spike of more than 200% in transaction volume may indicate
+        fake transactions being generated to inflate credit score.
+    
+    # Very low customer diversity is suspicious
+    - id: "FRAUD_002"
+      name: "Low Customer Diversity"
+      description: "Flags businesses with suspiciously few unique customers"
+      condition:
+        metric: "unique_customer_count"
+        operator: "<"
+        value: 5
+      severity: "MEDIUM"
+      action: "FLAG"
+      explanation: |
+        Legitimate businesses typically have more than 5 unique customers.
+        Very low diversity may indicate circular transactions.
+    
+    # Single payer concentration
+    - id: "FRAUD_003"
+      name: "Single Payer Dominance"
+      description: "Flags when one customer dominates transactions"
+      condition:
+        metric: "top_customer_percentage"
+        operator: ">"
+        value: 80
+      severity: "HIGH"
+      action: "MANUAL_REVIEW"
+      explanation: |
+        When a single customer accounts for more than 80% of transactions,
+        it may indicate self-dealing or fake transaction patterns.
+
+# ============================================================================
+# LOAN CALCULATION RULES
+# ============================================================================
+#
+# These rules determine loan amount, tenure, and interest rate based on
+# risk category and business metrics.
+#
+loan_parameters:
+  description: |
+    Rules for calculating loan terms. Designed to offer appropriate credit
+    while managing risk. Better scores unlock better terms.
+  
+  # Loan amount calculation
+  amount:
+    description: |
+      Loan amount is calculated as a percentage of average monthly volume.
+      This ensures repayment capacity aligns with business size.
+    
+    by_risk_category:
+      low_risk:
+        multiplier: 0.30  # 30% of monthly volume
+        description: "Up to 30% of average monthly volume"
+      medium_risk:
+        multiplier: 0.25  # 25% of monthly volume
+        description: "Up to 25% of average monthly volume"
+      high_risk:
+        multiplier: 0.15  # 15% of monthly volume
+        description: "Up to 15% of average monthly volume"
+    
+    limits:
+      minimum: 10000      # ₹10,000 minimum loan
+      maximum: 5000000    # ₹50 lakh maximum loan
+      currency: "INR"
+  
+  # Loan tenure
+  tenure:
+    description: |
+      Maximum loan tenure based on risk. Lower risk allows longer tenure.
+      Tenure may be reduced for inconsistent businesses.
+    
+    by_risk_category:
+      low_risk:
+        max_days: 365
+        default_days: 180
+        description: "Up to 12 months"
+      medium_risk:
+        max_days: 180
+        default_days: 90
+        description: "Up to 6 months"
+      high_risk:
+        max_days: 90
+        default_days: 30
+        description: "Up to 3 months"
+    
+    # Reduce tenure for inconsistent businesses
+    consistency_adjustment:
+      enabled: true
+      threshold: 60  # Consistency score below this triggers reduction
+      reduction_factor: 0.5  # Reduce to 50% of standard tenure
+  
+  # Interest rate
+  interest_rate:
+    description: |
+      Annual interest rate based on risk category.
+      Better scores get better rates as reward for good credit behavior.
+    
+    by_risk_category:
+      low_risk:
+        annual_rate: 18.0
+        description: "18% p.a. - Best available rate"
+      medium_risk:
+        annual_rate: 24.0
+        description: "24% p.a. - Standard rate"
+      high_risk:
+        annual_rate: 30.0
+        description: "30% p.a. - Higher risk premium"
+    
+    # These rates comply with RBI guidelines for NBFCs
+    regulatory_note: |
+      Interest rates comply with RBI Fair Practices Code.
+      All-in-cost including fees is disclosed upfront.
+
+# ============================================================================
+# RULE VERSIONING & GOVERNANCE
+# ============================================================================
+governance:
+  description: |
+    Rules for how these rules themselves are managed and changed.
+    Ensures transparency and community input in rule evolution.
+  
+  change_process:
+    - step: 1
+      action: "Propose Change"
+      description: "Submit pull request with proposed rule change and justification"
+    
+    - step: 2
+      action: "Community Review"
+      description: "7-day public comment period for feedback"
+    
+    - step: 3
+      action: "Impact Analysis"
+      description: "Assess impact on existing merchants and scores"
+    
+    - step: 4
+      action: "Vote/Consensus"
+      description: "Maintainers review and approve/reject"
+    
+    - step: 5
+      action: "Implementation"
+      description: "Merge and deploy with version increment"
+    
+    - step: 6
+      action: "Notification"
+      description: "Notify affected merchants of rule changes"
+  
+  principles:
+    - "Changes should not retroactively harm existing merchants"
+    - "All changes must be justified with data or research"
+    - "Fairness and inclusion are non-negotiable priorities"
+    - "Rules should be understandable by non-technical users"
+
+# ============================================================================
+# CHANGELOG
+# ============================================================================
+changelog:
+  - version: "1.0.0"
+    date: "2024-11-01"
+    changes:
+      - "Initial release of OpenCredit scoring rules"
+      - "5-component scoring model (volume, consistency, growth, bounce, concentration)"
+      - "3-tier risk classification (low, medium, high)"
+      - "Basic eligibility and fraud detection rules"
+    contributors:
+      - "OpenCredit Founding Team"

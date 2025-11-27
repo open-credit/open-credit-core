@@ -1,0 +1,947 @@
+{
+	"info": {
+		"_postman_id": "opencredit-api-collection",
+		"name": "🏦 OpenCredit - Credit Assessment API",
+		"description": "# OpenCredit Credit Assessment Engine API\n\n**Transparent, Rule-Based Credit Scoring for Financial Inclusion**\n\n## Overview\nThis collection provides comprehensive API documentation for the OpenCredit platform, organized by user journeys to help you understand and test various workflows.\n\n## Base URL\n- **Local**: `http://localhost:8080`\n- **Production**: `https://api.opencredit.example.com`\n\n## Authentication\nAll endpoints require a Bearer token in the Authorization header:\n```\nAuthorization: Bearer {{access_token}}\n```\n\n## User Journeys\n\n1. **🚀 Getting Started** - Health checks and API overview\n2. **📊 Credit Assessment** - Core scoring workflow\n3. **💡 AI Insights** - Recommendations and explanations\n4. **📜 Rules & Transparency** - View scoring methodology\n5. **💬 Conversational AI** - Chat interface\n6. **🧪 Demo & Testing** - Test scenarios\n7. **📈 Reporting & Analytics** - Reports and batch operations\n\n## Quick Start\n1. Set `base_url` variable to your server\n2. Run \"Health Check\" to verify connectivity\n3. Create a merchant and run assessment\n4. Explore insights and recommendations",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "merchant_id",
+			"value": "MERCH001",
+			"type": "string"
+		},
+		{
+			"key": "assessment_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "🚀 1. Getting Started",
+			"description": "Basic health checks and API overview to verify connectivity",
+			"item": [
+				{
+					"name": "1.1 Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						},
+						"description": "Verify the API is running and healthy.\n\n**Expected Response:**\n- Status: 200 OK\n- Body: Health status with component details"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"status\": \"UP\",\n  \"components\": {\n    \"database\": \"UP\",\n    \"ruleEngine\": \"UP\",\n    \"redis\": \"UP\"\n  },\n  \"version\": \"1.0.0\",\n  \"rulesVersion\": \"1.0.0\"\n}"
+						}
+					]
+				},
+				{
+					"name": "1.2 API Root / Welcome",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": ["{{base_url}}"],
+							"path": [""]
+						},
+						"description": "Get API welcome message and available endpoints overview."
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 Rules Version",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rules/version",
+							"host": ["{{base_url}}"],
+							"path": ["rules", "version"]
+						},
+						"description": "Get current version of scoring rules.\n\nThis helps verify which rule set is active and when it was last updated."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"version\": \"1.0.0\",\n  \"lastUpdated\": \"2025-01-15T10:30:00Z\",\n  \"changelog\": \"Initial release with core scoring rules\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "📊 2. Credit Assessment Journey",
+			"description": "# Credit Assessment Workflow\n\nThis journey covers the core credit scoring process:\n\n1. **Trigger Assessment** - Analyze merchant's UPI transactions\n2. **View Report** - Get detailed credit report\n3. **Check Eligibility** - Determine loan eligibility\n4. **Download PDF** - Get formatted report\n5. **Re-assess** - Refresh score with latest data",
+			"item": [
+				{
+					"name": "2.1 Trigger Credit Assessment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.assessmentId) {",
+									"        pm.collectionVariables.set('assessment_id', jsonData.assessmentId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"dateRange\": {\n    \"startDate\": \"2024-07-01\",\n    \"endDate\": \"2024-12-31\"\n  },\n  \"forceRefresh\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/credit-assessment/analyze/{{merchant_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["credit-assessment", "analyze", "{{merchant_id}}"]
+						},
+						"description": "# Trigger Credit Assessment\n\nAnalyze a merchant's UPI transaction history to calculate their credit score.\n\n## Request Body\n- `dateRange`: Period to analyze (optional, defaults to last 6 months)\n- `forceRefresh`: If true, recalculates even if recent assessment exists\n\n## What Happens:\n1. Fetches UPI transactions for the merchant\n2. Calculates financial metrics (volume, consistency, growth, etc.)\n3. Applies scoring rules from `scoring-rules.yaml`\n4. Checks eligibility against `eligibility-rules.yaml`\n5. Returns comprehensive credit assessment\n\n## Response Includes:\n- Credit score (0-100)\n- Risk category (LOW/MEDIUM/HIGH)\n- Eligibility status\n- Loan amount recommendation\n- Component score breakdown"
+					},
+					"response": [
+						{
+							"name": "Successful Assessment",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"assessmentId\": \"ASM-2024-001234\",\n  \"merchantId\": \"MERCH001\",\n  \"assessmentDate\": \"2024-12-15T14:30:00Z\",\n  \"creditScore\": 72,\n  \"riskCategory\": \"MEDIUM\",\n  \"riskDescription\": \"Moderate risk - Standard terms apply\",\n  \"isEligible\": true,\n  \"eligibleLoanAmount\": 45000.00,\n  \"maxTenureDays\": 180,\n  \"recommendedInterestRate\": 24.0,\n  \"metrics\": {\n    \"averageMonthlyVolume\": 150000.00,\n    \"consistencyScore\": 75.5,\n    \"growthRate\": 12.3,\n    \"bounceRate\": 5.2,\n    \"customerConcentration\": 28.5\n  },\n  \"componentScores\": {\n    \"volume\": 65,\n    \"consistency\": 75,\n    \"growth\": 80,\n    \"bounceRate\": 70,\n    \"concentration\": 72\n  },\n  \"rulesVersion\": \"1.0.0\"\n}"
+						},
+						{
+							"name": "Ineligible Merchant",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"assessmentId\": \"ASM-2024-001235\",\n  \"merchantId\": \"MERCH002\",\n  \"creditScore\": 45,\n  \"riskCategory\": \"HIGH\",\n  \"isEligible\": false,\n  \"ineligibilityReason\": \"Bounce rate 25% exceeds maximum threshold of 20%\",\n  \"rulesVersion\": \"1.0.0\"\n}"
+						}
+					]
+				},
+				{
+					"name": "2.2 Get Credit Report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/credit-assessment/report/{{merchant_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["credit-assessment", "report", "{{merchant_id}}"]
+						},
+						"description": "# Get Detailed Credit Report\n\nRetrieve the most recent credit assessment report for a merchant.\n\n## Returns:\n- Full credit score breakdown\n- All financial metrics\n- Eligibility details\n- Warnings and strengths\n- Historical comparison (if available)"
+					},
+					"response": []
+				},
+				{
+					"name": "2.3 Get Assessment by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/credit-assessment/assessment/{{assessment_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["credit-assessment", "assessment", "{{assessment_id}}"]
+						},
+						"description": "Retrieve a specific assessment by its unique ID.\n\nUseful for auditing and historical reference."
+					},
+					"response": []
+				},
+				{
+					"name": "2.4 Check Eligibility Only",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/credit-assessment/eligibility/{{merchant_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["credit-assessment", "eligibility", "{{merchant_id}}"]
+						},
+						"description": "# Quick Eligibility Check\n\nGet just the eligibility status without full assessment details.\n\n## Use Case:\n- Quick pre-qualification check\n- UI eligibility badge display\n- Loan application pre-screening"
+					},
+					"response": [
+						{
+							"name": "Eligible",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"merchantId\": \"MERCH001\",\n  \"isEligible\": true,\n  \"creditScore\": 72,\n  \"riskCategory\": \"MEDIUM\",\n  \"eligibleLoanAmount\": 45000.00,\n  \"maxTenureDays\": 180\n}"
+						},
+						{
+							"name": "Not Eligible",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"merchantId\": \"MERCH002\",\n  \"isEligible\": false,\n  \"creditScore\": 45,\n  \"riskCategory\": \"HIGH\",\n  \"reason\": \"Insufficient transaction history (2 months < 3 months required)\"\n}"
+						}
+					]
+				},
+				{
+					"name": "2.5 Assessment History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/credit-assessment/history/{{merchant_id}}?limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["credit-assessment", "history", "{{merchant_id}}"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of historical assessments to return"
+								}
+							]
+						},
+						"description": "# Assessment History\n\nGet historical credit assessments for a merchant.\n\n## Use Cases:\n- Track score improvement over time\n- Audit trail for compliance\n- Trend analysis"
+					},
+					"response": []
+				},
+				{
+					"name": "2.6 Download PDF Report",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/pdf"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/credit-assessment/report/{{merchant_id}}/pdf",
+							"host": ["{{base_url}}"],
+							"path": ["credit-assessment", "report", "{{merchant_id}}", "pdf"]
+						},
+						"description": "# Download PDF Credit Report\n\nGenerate and download a formatted PDF credit report.\n\n## Contents:\n- Credit score summary\n- Risk assessment\n- Financial metrics charts\n- Component score breakdown\n- Recommendations\n- Audit information"
+					},
+					"response": []
+				},
+				{
+					"name": "2.7 Re-assess (Force Refresh)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/credit-assessment/re-assess/{{merchant_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["credit-assessment", "re-assess", "{{merchant_id}}"]
+						},
+						"description": "# Force Re-assessment\n\nTrigger a fresh credit assessment, ignoring any cached results.\n\n## When to Use:\n- After merchant disputes previous score\n- After significant transaction activity\n- After rules update"
+					},
+					"response": []
+				},
+				{
+					"name": "2.8 Enhanced Assessment (with AI)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"includeInsights\": true,\n  \"includeRecommendations\": true,\n  \"language\": \"en\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/credit-assessment/analyze-enhanced/{{merchant_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["credit-assessment", "analyze-enhanced", "{{merchant_id}}"]
+						},
+						"description": "# Enhanced Assessment with AI Insights\n\nGet credit assessment with AI-powered explanations and recommendations.\n\n## Additional Features:\n- Natural language score explanation\n- Personalized improvement recommendations\n- Risk analysis narrative\n- Action items with timelines"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "💡 3. AI Insights Journey",
+			"description": "# AI-Powered Insights\n\nGet intelligent, personalized explanations and recommendations.\n\n**Note:** The rule engine makes all decisions; AI enhances explanations only.",
+			"item": [
+				{
+					"name": "3.1 Get All Insights",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/insights/{{merchant_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["insights", "{{merchant_id}}"]
+						},
+						"description": "# Comprehensive AI Insights\n\nGet all available insights for a merchant in one call.\n\n## Includes:\n- Score explanation in plain language\n- Risk analysis\n- Personalized recommendations\n- Improvement plan"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"merchantId\": \"MERCH001\",\n  \"scoreExplanation\": \"Your credit score of 72 places you in the MEDIUM risk category. This is a good score! Here's what it means...\",\n  \"riskAnalysis\": \"Your business shows consistent transaction patterns with healthy growth...\",\n  \"recommendations\": [\n    {\n      \"priority\": \"HIGH\",\n      \"area\": \"Bounce Rate\",\n      \"suggestion\": \"Reduce failed transactions from 5.2% to below 3% to improve your score by 5-8 points\",\n      \"impact\": \"+5-8 points\",\n      \"timeframe\": \"30-60 days\"\n    }\n  ],\n  \"generatedAt\": \"2024-12-15T14:35:00Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "3.2 Score Explanation (Narrative)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/insights/{{merchant_id}}/narrative",
+							"host": ["{{base_url}}"],
+							"path": ["insights", "{{merchant_id}}", "narrative"]
+						},
+						"description": "# Plain Language Score Explanation\n\nGet a human-friendly narrative explaining the credit score.\n\n## Perfect For:\n- Customer-facing applications\n- Non-technical stakeholders\n- Mobile app displays"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"merchantId\": \"MERCH001\",\n  \"narrative\": \"Great news! Your credit score of 72 out of 100 shows your business is doing well. You're in the MEDIUM risk category, which means you qualify for loans with standard terms.\\n\\n**What's working well:**\\n✓ Your monthly transaction volume of ₹1.5 lakhs shows healthy business activity\\n✓ You've maintained consistent transactions over the past 6 months\\n✓ Your growth rate of 12% is above average\\n\\n**Areas to improve:**\\n• Your bounce rate of 5.2% is slightly high - aim for under 3%\\n• Consider diversifying your customer base to reduce concentration risk\\n\\nKeep up the good work, and you could see your score improve to 80+ in the next few months!\",\n  \"language\": \"en\",\n  \"generatedAt\": \"2024-12-15T14:35:00Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "3.3 Risk Analysis",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/insights/{{merchant_id}}/risk-analysis",
+							"host": ["{{base_url}}"],
+							"path": ["insights", "{{merchant_id}}", "risk-analysis"]
+						},
+						"description": "# Detailed Risk Analysis\n\nGet in-depth risk assessment with contributing factors."
+					},
+					"response": []
+				},
+				{
+					"name": "3.4 Personalized Recommendations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/insights/{{merchant_id}}/recommendations",
+							"host": ["{{base_url}}"],
+							"path": ["insights", "{{merchant_id}}", "recommendations"]
+						},
+						"description": "# Actionable Recommendations\n\nGet specific, actionable suggestions to improve credit score.\n\n## Response Includes:\n- Priority ranking (HIGH/MEDIUM/LOW)\n- Specific actions to take\n- Expected score impact\n- Estimated timeframe"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"merchantId\": \"MERCH001\",\n  \"currentScore\": 72,\n  \"potentialScore\": 85,\n  \"recommendations\": [\n    {\n      \"id\": 1,\n      \"priority\": \"HIGH\",\n      \"area\": \"Bounce Rate\",\n      \"currentValue\": \"5.2%\",\n      \"targetValue\": \"<3%\",\n      \"action\": \"Review failed transactions and ensure sufficient balance before UPI collections\",\n      \"impact\": \"+5-8 points\",\n      \"timeframe\": \"30-60 days\",\n      \"difficulty\": \"EASY\"\n    },\n    {\n      \"id\": 2,\n      \"priority\": \"MEDIUM\",\n      \"area\": \"Customer Diversification\",\n      \"currentValue\": \"28.5% concentration\",\n      \"targetValue\": \"<20%\",\n      \"action\": \"Expand customer base to reduce dependency on top customers\",\n      \"impact\": \"+3-5 points\",\n      \"timeframe\": \"60-90 days\",\n      \"difficulty\": \"MEDIUM\"\n    }\n  ]\n}"
+						}
+					]
+				},
+				{
+					"name": "3.5 Improvement Plan",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/insights/{{merchant_id}}/improvement-plan",
+							"host": ["{{base_url}}"],
+							"path": ["insights", "{{merchant_id}}", "improvement-plan"]
+						},
+						"description": "# Score Improvement Plan\n\nGet a structured plan to improve credit score over time.\n\n## Plan Includes:\n- 30-day quick wins\n- 60-day improvements\n- 90-day goals\n- Milestone targets"
+					},
+					"response": []
+				},
+				{
+					"name": "3.6 Industry Comparison",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/insights/{{merchant_id}}/compare/retail",
+							"host": ["{{base_url}}"],
+							"path": ["insights", "{{merchant_id}}", "compare", "retail"]
+						},
+						"description": "# Industry Benchmark Comparison\n\nCompare merchant's metrics against industry averages.\n\n## Industries:\n- `retail` - Retail shops\n- `food` - Restaurants, food delivery\n- `services` - Professional services\n- `wholesale` - B2B wholesale\n- `agriculture` - Farmers, agri-business"
+					},
+					"response": []
+				},
+				{
+					"name": "3.7 Explain Anomaly",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"anomalyType\": \"SUDDEN_VOLUME_DROP\",\n  \"period\": \"2024-11\",\n  \"details\": \"Volume dropped 40% compared to previous month\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/insights/{{merchant_id}}/explain-anomaly",
+							"host": ["{{base_url}}"],
+							"path": ["insights", "{{merchant_id}}", "explain-anomaly"]
+						},
+						"description": "# Explain Transaction Anomaly\n\nGet AI explanation for unusual transaction patterns.\n\n## Anomaly Types:\n- `SUDDEN_VOLUME_DROP` - Unexpected decrease\n- `SUDDEN_VOLUME_SPIKE` - Unexpected increase\n- `HIGH_BOUNCE_RATE` - Unusual failures\n- `CONCENTRATION_SPIKE` - Customer concentration increase"
+					},
+					"response": []
+				},
+				{
+					"name": "3.8 Executive Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/insights/{{merchant_id}}/summary",
+							"host": ["{{base_url}}"],
+							"path": ["insights", "{{merchant_id}}", "summary"]
+						},
+						"description": "# Executive Summary\n\nGet a brief executive summary suitable for dashboards and reports."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📜 4. Rules & Transparency Journey",
+			"description": "# Scoring Rules & Transparency\n\nOpenCredit is built on transparency. All scoring rules are publicly visible and auditable.\n\n**Key Principle:** Anyone can see exactly how scores are calculated.",
+			"item": [
+				{
+					"name": "4.1 Full Rules Documentation",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rules/full",
+							"host": ["{{base_url}}"],
+							"path": ["rules", "full"]
+						},
+						"description": "# Complete Scoring Rules\n\nGet the full scoring rules documentation including:\n- All scoring components\n- Eligibility criteria\n- Loan parameters\n- Fraud indicators\n\n**This is the source of truth for all credit decisions.**"
+					},
+					"response": []
+				},
+				{
+					"name": "4.2 Scoring Methodology",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rules/methodology",
+							"host": ["{{base_url}}"],
+							"path": ["rules", "methodology"]
+						},
+						"description": "# Scoring Methodology\n\nUnderstand how the credit score is calculated.\n\n## Components & Weights:\n- Volume Score: 30%\n- Consistency Score: 25%\n- Growth Score: 15%\n- Bounce Rate Score: 15%\n- Concentration Score: 15%"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"version\": \"1.0.0\",\n  \"methodology\": {\n    \"name\": \"OpenCredit UPI Score\",\n    \"description\": \"Transparent credit scoring based on UPI transaction analysis\",\n    \"scoreRange\": {\n      \"min\": 0,\n      \"max\": 100\n    },\n    \"components\": [\n      {\n        \"name\": \"volume\",\n        \"weight\": 0.30,\n        \"description\": \"Monthly transaction volume\"\n      },\n      {\n        \"name\": \"consistency\",\n        \"weight\": 0.25,\n        \"description\": \"Month-over-month consistency\"\n      },\n      {\n        \"name\": \"growth\",\n        \"weight\": 0.15,\n        \"description\": \"Transaction growth rate\"\n      },\n      {\n        \"name\": \"bounce_rate\",\n        \"weight\": 0.15,\n        \"description\": \"Failed transaction rate\"\n      },\n      {\n        \"name\": \"concentration\",\n        \"weight\": 0.15,\n        \"description\": \"Customer diversification\"\n      }\n    ],\n    \"riskCategories\": {\n      \"LOW\": \"Score >= 80\",\n      \"MEDIUM\": \"Score 60-79\",\n      \"HIGH\": \"Score < 60\"\n    }\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "4.3 Component Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rules/components",
+							"host": ["{{base_url}}"],
+							"path": ["rules", "components"]
+						},
+						"description": "# Scoring Component Details\n\nGet detailed breakdown of each scoring component including tiers and thresholds."
+					},
+					"response": []
+				},
+				{
+					"name": "4.4 Eligibility Rules",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rules/eligibility",
+							"host": ["{{base_url}}"],
+							"path": ["rules", "eligibility"]
+						},
+						"description": "# Eligibility Requirements\n\nView all eligibility criteria a merchant must meet.\n\n## Typical Requirements:\n- Minimum 3 months transaction history\n- Minimum ₹25,000 monthly volume\n- Minimum 20 transactions per month\n- Bounce rate below 20%"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"version\": \"1.0.0\",\n  \"eligibilityRules\": [\n    {\n      \"ruleId\": \"ELIG_001\",\n      \"name\": \"Minimum Tenure\",\n      \"description\": \"Merchant must have at least 3 months of transaction history\",\n      \"threshold\": 3,\n      \"unit\": \"months\",\n      \"failureMessage\": \"Insufficient transaction history\"\n    },\n    {\n      \"ruleId\": \"ELIG_002\",\n      \"name\": \"Minimum Volume\",\n      \"description\": \"Average monthly volume must be at least ₹25,000\",\n      \"threshold\": 25000,\n      \"unit\": \"INR\",\n      \"failureMessage\": \"Monthly volume below minimum threshold\"\n    },\n    {\n      \"ruleId\": \"ELIG_003\",\n      \"name\": \"Maximum Bounce Rate\",\n      \"description\": \"Bounce rate must not exceed 20%\",\n      \"threshold\": 20,\n      \"unit\": \"percent\",\n      \"failureMessage\": \"Bounce rate too high\"\n    }\n  ]\n}"
+						}
+					]
+				},
+				{
+					"name": "4.5 Loan Parameters",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rules/loan-parameters",
+							"host": ["{{base_url}}"],
+							"path": ["rules", "loan-parameters"]
+						},
+						"description": "# Loan Parameter Rules\n\nView rules for calculating loan amounts, tenure, and interest rates."
+					},
+					"response": []
+				},
+				{
+					"name": "4.6 Rules Governance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rules/governance",
+							"host": ["{{base_url}}"],
+							"path": ["rules", "governance"]
+						},
+						"description": "# Rules Governance\n\nInformation about how rules are managed, updated, and audited."
+					},
+					"response": []
+				},
+				{
+					"name": "4.7 Rules Changelog",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rules/changelog",
+							"host": ["{{base_url}}"],
+							"path": ["rules", "changelog"]
+						},
+						"description": "# Rules Change History\n\nView the history of all rule changes for audit and transparency."
+					},
+					"response": []
+				},
+				{
+					"name": "4.8 Simulate Score (What-If)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"averageMonthlyVolume\": 200000,\n  \"consistencyScore\": 80,\n  \"growthRate\": 15,\n  \"bounceRate\": 3,\n  \"customerConcentration\": 25,\n  \"tenureMonths\": 6\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/rules/simulate",
+							"host": ["{{base_url}}"],
+							"path": ["rules", "simulate"]
+						},
+						"description": "# Simulate Credit Score\n\nRun a what-if simulation to see what score would result from given metrics.\n\n## Use Cases:\n- Help merchants understand what they need to improve\n- Pre-qualification estimates\n- Training and demonstration"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"simulatedScore\": 82,\n  \"riskCategory\": \"LOW\",\n  \"isEligible\": true,\n  \"eligibleLoanAmount\": 60000,\n  \"componentBreakdown\": {\n    \"volume\": {\"score\": 80, \"weighted\": 24},\n    \"consistency\": {\"score\": 80, \"weighted\": 20},\n    \"growth\": {\"score\": 85, \"weighted\": 12.75},\n    \"bounceRate\": {\"score\": 100, \"weighted\": 15},\n    \"concentration\": {\"score\": 72, \"weighted\": 10.8}\n  },\n  \"message\": \"This is a simulation only. Actual scores depend on verified transaction data.\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "💬 5. Conversational AI Journey",
+			"description": "# Chat Interface\n\nInteract with the credit assessment system using natural language.",
+			"item": [
+				{
+					"name": "5.1 Start Chat Session",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.sessionId) {",
+									"        pm.collectionVariables.set('session_id', jsonData.sessionId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"merchantId\": \"{{merchant_id}}\",\n  \"language\": \"en\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/chat/session/start",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "session", "start"]
+						},
+						"description": "# Start Chat Session\n\nInitiate a new conversational session for a merchant.\n\n## Supported Languages:\n- `en` - English\n- `hi` - Hindi\n- `mr` - Marathi\n- `gu` - Gujarati"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"sessionId\": \"sess_abc123\",\n  \"merchantId\": \"MERCH001\",\n  \"welcomeMessage\": \"Hello! I'm your OpenCredit assistant. I can help you understand your credit score, explain how to improve it, and answer questions about your eligibility. What would you like to know?\",\n  \"suggestedQuestions\": [\n    \"What is my current credit score?\",\n    \"Why am I not eligible for a higher loan?\",\n    \"How can I improve my score?\",\n    \"Explain my bounce rate\"\n  ]\n}"
+						}
+					]
+				},
+				{
+					"name": "5.2 Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Why is my score only 72? What can I do to improve it?\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/chat/message",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "message"]
+						},
+						"description": "# Send Chat Message\n\nSend a message and get an AI response.\n\n## Example Questions:\n- \"What is my credit score?\"\n- \"Why is my bounce rate affecting my score?\"\n- \"How can I improve my score?\"\n- \"Am I eligible for a loan?\"\n- \"What does customer concentration mean?\""
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"sessionId\": \"sess_abc123\",\n  \"response\": \"Your current score of 72 is actually quite good! You're in the MEDIUM risk category. Here's what's affecting your score:\\n\\n**Strengths:**\\n• Good transaction volume (₹1.5L/month)\\n• Healthy growth rate (12%)\\n\\n**Areas to Improve:**\\n1. **Bounce Rate (5.2%)** - This is your biggest opportunity. Reducing it to under 3% could add 5-8 points.\\n2. **Customer Concentration (28.5%)** - Diversifying your customer base could add 3-5 points.\\n\\nWould you like specific tips on reducing your bounce rate?\",\n  \"suggestedFollowUps\": [\n    \"Yes, tell me how to reduce bounce rate\",\n    \"What loan amount can I get now?\",\n    \"How long until I can reach 80?\"\n  ]\n}"
+						}
+					]
+				},
+				{
+					"name": "5.3 Quick Question (No Session)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/chat/quick/{{merchant_id}}/what-is-my-score",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "quick", "{{merchant_id}}", "what-is-my-score"]
+						},
+						"description": "# Quick Question (Stateless)\n\nAsk a quick question without starting a session.\n\n## Supported Questions:\n- `what-is-my-score`\n- `am-i-eligible`\n- `how-to-improve`\n- `explain-bounce-rate`\n- `loan-amount`"
+					},
+					"response": []
+				},
+				{
+					"name": "5.4 Get Suggested Questions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/chat/questions",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "questions"]
+						},
+						"description": "# Get Suggested Questions\n\nGet a list of common questions users can ask."
+					},
+					"response": []
+				},
+				{
+					"name": "5.5 Get Session History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/chat/session/{{session_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "session", "{{session_id}}"]
+						},
+						"description": "# Get Session History\n\nRetrieve the full conversation history for a session."
+					},
+					"response": []
+				},
+				{
+					"name": "5.6 End Chat Session",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/chat/session/{{session_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "session", "{{session_id}}"]
+						},
+						"description": "# End Chat Session\n\nClose a chat session and clean up resources."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🧪 6. Demo & Testing Journey",
+			"description": "# Demo & Testing Scenarios\n\nPre-configured scenarios for testing and demonstration.",
+			"item": [
+				{
+					"name": "6.1 List Available Scenarios",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/demo/scenarios",
+							"host": ["{{base_url}}"],
+							"path": ["demo", "scenarios"]
+						},
+						"description": "# List Demo Scenarios\n\nGet all available test scenarios.\n\n## Available Scenarios:\n- `excellent` - High-performing merchant (Score 85+)\n- `good` - Solid merchant (Score 70-84)\n- `average` - Typical merchant (Score 60-69)\n- `poor` - Struggling merchant (Score 40-59)\n- `ineligible` - Below minimum requirements\n- `seasonal` - Seasonal business pattern\n- `new` - New merchant with limited history"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"scenarios\": [\n    {\n      \"name\": \"excellent\",\n      \"description\": \"High-performing merchant with excellent metrics\",\n      \"expectedScore\": \"85-100\",\n      \"expectedRisk\": \"LOW\"\n    },\n    {\n      \"name\": \"good\",\n      \"description\": \"Solid merchant with good track record\",\n      \"expectedScore\": \"70-84\",\n      \"expectedRisk\": \"MEDIUM\"\n    },\n    {\n      \"name\": \"ineligible\",\n      \"description\": \"Merchant that fails eligibility criteria\",\n      \"expectedScore\": \"N/A\",\n      \"expectedRisk\": \"N/A\",\n      \"failureReason\": \"Bounce rate exceeds 20%\"\n    }\n  ]\n}"
+						}
+					]
+				},
+				{
+					"name": "6.2 Run Demo Scenario",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/demo/assess/excellent/DEMO_MERCH_001",
+							"host": ["{{base_url}}"],
+							"path": ["demo", "assess", "excellent", "DEMO_MERCH_001"]
+						},
+						"description": "# Run Demo Assessment\n\nRun a credit assessment using pre-configured demo data.\n\n## Path Parameters:\n- `scenario`: One of excellent, good, average, poor, ineligible, seasonal, new\n- `merchantId`: Any test merchant ID"
+					},
+					"response": []
+				},
+				{
+					"name": "6.3 Preview Scenario (Dry Run)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/demo/preview/good/DEMO_MERCH_002",
+							"host": ["{{base_url}}"],
+							"path": ["demo", "preview", "good", "DEMO_MERCH_002"]
+						},
+						"description": "# Preview Scenario\n\nPreview what metrics would be used for a scenario without running full assessment."
+					},
+					"response": []
+				},
+				{
+					"name": "6.4 Get Scenario Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/demo/scenario/excellent",
+							"host": ["{{base_url}}"],
+							"path": ["demo", "scenario", "excellent"]
+						},
+						"description": "# Get Scenario Configuration\n\nView the full configuration for a specific demo scenario."
+					},
+					"response": []
+				},
+				{
+					"name": "6.5 Compare All Scenarios",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/demo/compare-all",
+							"host": ["{{base_url}}"],
+							"path": ["demo", "compare-all"]
+						},
+						"description": "# Compare All Scenarios\n\nRun all scenarios and compare results side-by-side.\n\n**Great for:** Demonstrating how different merchant profiles result in different scores."
+					},
+					"response": []
+				},
+				{
+					"name": "6.6 Quick Score Calculator",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"monthlyVolume\": 150000,\n  \"bounceRate\": 5,\n  \"growthRate\": 10,\n  \"concentration\": 30,\n  \"tenureMonths\": 6\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/demo/quick-score",
+							"host": ["{{base_url}}"],
+							"path": ["demo", "quick-score"]
+						},
+						"description": "# Quick Score Calculator\n\nInstantly calculate a score from provided metrics.\n\n**Use for:** Quick estimates and demonstrations."
+					},
+					"response": []
+				},
+				{
+					"name": "6.7 Sample Assessment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/demo/assess/sample",
+							"host": ["{{base_url}}"],
+							"path": ["demo", "assess", "sample"]
+						},
+						"description": "# Sample Assessment Response\n\nGet a sample assessment response structure for API documentation."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📈 7. Reporting & Batch Operations",
+			"description": "# Reporting & Batch Operations\n\nBulk operations and aggregate reporting.",
+			"item": [
+				{
+					"name": "7.1 Get Eligible Merchants",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/credit-assessment/eligible?minScore=70&limit=50",
+							"host": ["{{base_url}}"],
+							"path": ["credit-assessment", "eligible"],
+							"query": [
+								{
+									"key": "minScore",
+									"value": "70",
+									"description": "Minimum credit score"
+								},
+								{
+									"key": "limit",
+									"value": "50",
+									"description": "Maximum results to return"
+								}
+							]
+						},
+						"description": "# Get Eligible Merchants\n\nList all merchants that meet eligibility criteria.\n\n## Filters:\n- `minScore`: Minimum credit score\n- `maxScore`: Maximum credit score\n- `riskCategory`: LOW, MEDIUM, HIGH\n- `limit`: Max results"
+					},
+					"response": []
+				},
+				{
+					"name": "7.2 Get Merchants by Risk Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/credit-assessment/by-risk/MEDIUM?limit=100",
+							"host": ["{{base_url}}"],
+							"path": ["credit-assessment", "by-risk", "MEDIUM"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100"
+								}
+							]
+						},
+						"description": "# Get Merchants by Risk Category\n\nList merchants in a specific risk category.\n\n## Categories:\n- `LOW` - Score 80+\n- `MEDIUM` - Score 60-79\n- `HIGH` - Score below 60"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🔧 8. Admin & Training",
+			"description": "# Admin & Training Data\n\nEndpoints for system administration and LLM training data generation.",
+			"item": [
+				{
+					"name": "8.1 Generate Training Data",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"outputDir\": \"/tmp/training-data\",\n  \"numProfiles\": 1000\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/training/generate",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "training", "generate"]
+						},
+						"description": "# Generate LLM Training Data\n\nGenerate training data for fine-tuning LLMs on credit score explanations.\n\n## Parameters:\n- `outputDir`: Where to save generated files\n- `numProfiles`: Number of synthetic profiles to generate"
+					},
+					"response": []
+				},
+				{
+					"name": "8.2 Training Config",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/training/config",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "training", "config"]
+						},
+						"description": "# Get Training Configuration\n\nView recommended configuration for LLM training."
+					},
+					"response": []
+				},
+				{
+					"name": "8.3 Sample Training Example",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/training/sample",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "training", "sample"]
+						},
+						"description": "# Sample Training Example\n\nPreview what a training example looks like."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
