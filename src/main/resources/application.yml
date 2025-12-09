@@ -141,10 +141,10 @@ rules:
 llm:
   # Enable/disable all LLM features
   enabled: ${LLM_ENABLED:true}
-  
-  # Provider: FINGPT, OPENAI, OLLAMA, AZURE_OPENAI
+
+  # Provider: FINGPT, OPENAI, OLLAMA, AZURE_OPENAI, MISTRAL
   provider: ${LLM_PROVIDER:OPENAI}
-  
+
   # API Configuration
   api:
     # OpenAI
@@ -153,22 +153,26 @@ llm:
     timeout-seconds: 60
     max-retries: 3
     organization-id: ${OPENAI_ORG_ID:}
-    
+
     # For FinGPT (HuggingFace)
     # base-url: https://api-inference.huggingface.co/models/FinGPT/fingpt-forecaster
-    
+
     # For Ollama (local)
     # base-url: http://localhost:11434
-    
+
     # For Azure OpenAI
     # base-url: https://{resource}.openai.azure.com
-  
+
+    # For Mistral AI
+    # base-url: https://api.mistral.ai/v1
+
   # Model Configuration
   model:
     openai-model: ${OPENAI_MODEL:gpt-4o}
     fingpt-model: fingpt-forecaster
     ollama-model: ${OLLAMA_MODEL:llama3:8b}
     azure-deployment: ${AZURE_DEPLOYMENT:gpt-4}
+    mistral-model: ${MISTRAL_MODEL:devstral-small-2505}
     temperature: 0.7
     max-tokens: 2048
     top-p: 0.9

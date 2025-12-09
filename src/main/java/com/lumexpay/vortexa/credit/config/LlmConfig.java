@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * Configuration for LLM/FinGPT integration.
- * Supports multiple providers: FinGPT, OpenAI, Ollama (local), Azure OpenAI
+ * Supports multiple providers: FinGPT, OpenAI, Ollama (local), Azure OpenAI, Mistral AI
  */
 @Configuration
 @ConfigurationProperties(prefix = "llm")
@@ -22,7 +22,7 @@ public class LlmConfig {
     private boolean enabled = true;
 
     /**
-     * LLM provider: FINGPT, OPENAI, OLLAMA, AZURE_OPENAI
+     * LLM provider: FINGPT, OPENAI, OLLAMA, AZURE_OPENAI, MISTRAL
      */
     private Provider provider = Provider.OPENAI;
 
@@ -50,7 +50,8 @@ public class LlmConfig {
         FINGPT,      // FinGPT specialized financial model
         OPENAI,      // OpenAI GPT-4/3.5
         OLLAMA,      // Local Ollama models
-        AZURE_OPENAI // Azure OpenAI Service
+        AZURE_OPENAI,// Azure OpenAI Service
+        MISTRAL      // Mistral AI (Devstral Small and other models)
     }
 
     @Data
@@ -69,7 +70,8 @@ public class LlmConfig {
         private String fingptModel = "fingpt-forecaster";
         private String ollamaModel = "llama3:8b";
         private String azureDeployment = "gpt-4";
-        
+        private String mistralModel = "devstral-small-2505";
+
         // Generation parameters
         private double temperature = 0.7;
         private int maxTokens = 2048;

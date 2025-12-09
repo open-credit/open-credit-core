@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * LLM Client for integrating with various LLM providers including FinGPT.
- * Supports OpenAI, FinGPT, Ollama, and Azure OpenAI.
+ * Supports OpenAI, FinGPT, Ollama, Azure OpenAI, and Mistral AI.
  */
 @Component
 @Slf4j
@@ -56,6 +56,7 @@ public class LlmClient {
                 case OPENAI, AZURE_OPENAI -> callOpenAiApi(prompt, systemPrompt);
                 case FINGPT -> callFinGptApi(prompt, systemPrompt);
                 case OLLAMA -> callOllamaApi(prompt, systemPrompt);
+                case MISTRAL -> callMistralApi(prompt, systemPrompt);
             };
         } catch (Exception e) {
             log.error("LLM completion failed: {}", e.getMessage(), e);
@@ -76,6 +77,7 @@ public class LlmClient {
                 case OPENAI, AZURE_OPENAI -> callOpenAiChatApi(messages, systemPrompt);
                 case FINGPT -> callFinGptChatApi(messages, systemPrompt);
                 case OLLAMA -> callOllamaChatApi(messages, systemPrompt);
+                case MISTRAL -> callMistralChatApi(messages, systemPrompt);
             };
         } catch (Exception e) {
             log.error("LLM chat completion failed: {}", e.getMessage(), e);
@@ -369,6 +371,94 @@ public class LlmClient {
                 String responseBody = EntityUtils.toString(response.getEntity());
                 JsonNode jsonResponse = objectMapper.readTree(responseBody);
                 return jsonResponse.path("message").path("content").asText();
+            }
+        }
+    }
+
+    /**
+     * Call Mistral API - OpenAI-compatible interface.
+     * Supports Devstral Small and other Mistral models for credit score explanations.
+     */
+    private String callMistralApi(String prompt, String systemPrompt) throws ParseException, IOException {
+        String url = config.getApi().getBaseUrl() + "/chat/completions";
+
+        List<Map<String, String>> messages = new ArrayList<>();
+        if (systemPrompt != null && !systemPrompt.isEmpty()) {
+            messages.add(Map.of("role", "system", "content", systemPrompt));
+        }
+        messages.add(Map.of("role", "user", "content", prompt));
+
+        Map<String, Object> requestBody = Map.of(
+            "model", config.getModel().getMistralModel(),
+            "messages", messages,
+            "temperature", config.getModel().getTemperature(),
+            "max_tokens", config.getModel().getMaxTokens(),
+            "top_p", config.getModel().getTopP()
+        );
+
+        return executeMistralRequest(url, requestBody);
+    }
+
+    /**
+     * Call Mistral Chat API with message history.
+     */
+    private String callMistralChatApi(List<ChatMessage> chatMessages, String systemPrompt) throws ParseException, IOException {
+        String url = config.getApi().getBaseUrl() + "/chat/completions";
+
+        List<Map<String, String>> messages = new ArrayList<>();
+        if (systemPrompt != null && !systemPrompt.isEmpty()) {
+            messages.add(Map.of("role", "system", "content", systemPrompt));
+        }
+        for (ChatMessage msg : chatMessages) {
+            messages.add(Map.of("role", msg.getRole(), "content", msg.getContent()));
+        }
+
+        Map<String, Object> requestBody = Map.of(
+            "model", config.getModel().getMistralModel(),
+            "messages", messages,
+            "temperature", config.getModel().getTemperature(),
+            "max_tokens", config.getModel().getMaxTokens()
+        );
+
+        return executeMistralRequest(url, requestBody);
+    }
+
+    /**
+     * Execute request to Mistral API.
+     */
+    private String executeMistralRequest(String url, Map<String, Object> requestBody) throws ParseException, IOException {
+        RequestConfig requestConfig = RequestConfig.custom()
+            .setConnectionRequestTimeout(Timeout.of(config.getApi().getTimeoutSeconds(), TimeUnit.SECONDS))
+            .setResponseTimeout(Timeout.of(config.getApi().getTimeoutSeconds(), TimeUnit.SECONDS))
+            .build();
+
+        try (CloseableHttpClient httpClient = HttpClients.custom()
+                .setDefaultRequestConfig(requestConfig)
+                .build()) {
+
+            HttpPost request = new HttpPost(url);
+            request.setHeader("Content-Type", "application/json");
+            request.setHeader("Authorization", "Bearer " + config.getApi().getApiKey());
+
+            String jsonBody = objectMapper.writeValueAsString(requestBody);
+            request.setEntity(new StringEntity(jsonBody, ContentType.APPLICATION_JSON));
+
+            log.debug("Calling Mistral API at: {}", url);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                String responseBody = EntityUtils.toString(response.getEntity());
+                int statusCode = response.getCode();
+
+                if (statusCode != 200) {
+                    log.error("Mistral API error: {} - {}", statusCode, responseBody);
+                    throw new IOException("Mistral API returned status: " + statusCode);
+                }
+
+                JsonNode jsonResponse = objectMapper.readTree(responseBody);
+                String content = jsonResponse.path("choices").path(0).path("message").path("content").asText();
+
+                log.debug("Mistral API response received, content length: {}", content.length());
+                return content;
             }
         }
     }
