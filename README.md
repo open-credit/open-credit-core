@@ -3,6 +3,9 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Rules Version](https://img.shields.io/badge/Rules-v1.0.0-green.svg)](./src/main/resources/rules/)
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/open-credit/opencredit.org.in/main/public/logo.svg" alt="Open Credit Initiative Logo" width="220"/>
+</p>
 
 **Democratizing Credit Access Through Transparency**
 
@@ -646,7 +649,7 @@ mvn spring-boot:run
 
 ## 📄 License
 
-OpenCredit is licensed under the **Apache License 2.0** - you are free to use, modify, and distribute this software for any purpose, including commercial use.
+Open Credit is licensed under the **Apache License 2.0** - you are free to use, modify, and distribute this software for any purpose, including commercial use.
 
 See [LICENSE](LICENSE) for details.
 
@@ -663,8 +666,8 @@ See [LICENSE](LICENSE) for details.
 ## 📞 Support
 
 - 📧 Email: info@lumexpay.com support@opencredit.org.in 
-- 💬 Discord: [OpenCredit Community](https://discord.gg/opencredit)
-- 📚 Docs: [opencredit.org.in](https://opencredit.org.in)
+- 💬 Discord: [Open Credit Inititive Community](https://discord.gg/opencredit)
+- 📚 Docs: [Open Credit Docs](https://opencredit.org.in)
 - 🐛 Issues: [GitHub Issues](https://github.com/open-redit/opencredit-core/issues)
 
 ---
